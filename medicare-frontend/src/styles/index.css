@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper-50 text-paper-800 font-sans;
+  }
+
+  /* Headings use the display serif by default. */
+  h1, h2, h3, h4 {
+    @apply font-display text-pine-900;
+    font-optical-sizing: auto;
+  }
+
+  /* Consistent focus ring across interactive elements. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-pine-500 ring-offset-2 ring-offset-paper-50;
+  }
+
+  /* Thin, unobtrusive scrollbar. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-paper-300 rounded-full;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-paper-400;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Components                                                           */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Subtle dotted texture used on hero / section backgrounds. */
+  .bg-dotted {
+    background-image: radial-gradient(
+      rgba(43, 96, 79, 0.09) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* Layered atmospheric gradient for hero sections. */
+  .bg-hero {
+    background:
+      radial-gradient(
+        60% 50% at 80% 0%,
+        rgba(86, 148, 125, 0.22) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        50% 60% at 0% 100%,
+        rgba(209, 122, 87, 0.14) 0%,
+        transparent 70%
+      );
+  }
+
+  /* Page section container width. */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  /* Eyebrow label above section headings. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-pine-600;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Utilities                                                            */
+/* ------------------------------------------------------------------ */
+@layer utilities {
+  /* Staggered reveal helper — pair with .animate-fade-up. */
+  .delay-1 { animation-delay: 0.06s; }
+  .delay-2 { animation-delay: 0.12s; }
+  .delay-3 { animation-delay: 0.18s; }
+  .delay-4 { animation-delay: 0.24s; }
+  .delay-5 { animation-delay: 0.30s; }
+}
