@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { LogIn } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
-import { useAuthStore } from '@/store/auth.store';
-import { notify } from '@/store/ui.store';
-import { ROLE_HOME } from '@/lib/constants';
-import { errorMessage } from '@/lib/utils';
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { LogIn } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import { useAuthStore } from "@/store/auth.store";
+import { notify } from "@/store/ui.store";
+import { ROLE_HOME } from "@/lib/constants";
+import { errorMessage } from "@/lib/utils";
 
 /**
  * LoginPage — email + password sign-in.
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState("");
 
   const {
     register,
@@ -32,22 +32,22 @@ export default function LoginPage() {
   const redirectTo = location.state?.from || null;
 
   const onSubmit = async ({ email, password }) => {
-    setFormError('');
+    setFormError("");
     try {
       const result = await login(email, password);
 
       if (result.twoFactorRequired) {
-        notify.info('Enter the code we sent to finish signing in.');
-        navigate('/verify-otp', { state: { from: redirectTo } });
+        notify.info("Enter the code we sent to finish signing in.");
+        navigate("/verify-otp", { state: { from: redirectTo } });
         return;
       }
 
       notify.success(`Welcome back, ${result.user.firstName}!`);
-      navigate(redirectTo || ROLE_HOME[result.user.role] || '/app', {
+      navigate(redirectTo || ROLE_HOME[result.user.role] || "/app", {
         replace: true,
       });
     } catch (err) {
-      setFormError(errorMessage(err, 'Could not sign in'));
+      setFormError(errorMessage(err, "Could not sign in"));
     }
   };
 
@@ -76,11 +76,11 @@ export default function LoginPage() {
           placeholder="you@clinic.com"
           required
           error={errors.email?.message}
-          {...register('email', {
-            required: 'Email is required',
+          {...register("email", {
+            required: "Email is required",
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: 'Enter a valid email',
+              message: "Enter a valid email",
             },
           })}
         />
@@ -93,8 +93,8 @@ export default function LoginPage() {
             placeholder="••••••••"
             required
             error={errors.password?.message}
-            {...register('password', {
-              required: 'Password is required',
+            {...register("password", {
+              required: "Password is required",
             })}
           />
           <div className="mt-1.5 text-right">
@@ -119,7 +119,7 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-paper-500">
-        New to MediCare Connect?{' '}
+        New to MediCare Connect?{" "}
         <Link
           to="/register"
           className="font-semibold text-pine-700 hover:text-pine-900"
@@ -129,7 +129,7 @@ export default function LoginPage() {
       </p>
 
       {/* Demo credentials hint — remove in production */}
-      <div className="mt-6 rounded-xl border border-paper-200 bg-paper-100 p-3.5">
+      {/* <div className="mt-6 rounded-xl border border-paper-200 bg-paper-100 p-3.5">
         <p className="text-xs font-semibold text-paper-600">
           Demo accounts (password: ChangeMe123!)
         </p>
@@ -138,7 +138,7 @@ export default function LoginPage() {
           doctor@democlinic.test · reception@democlinic.test ·
           patient@democlinic.test
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }

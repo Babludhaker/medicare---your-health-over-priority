@@ -1,17 +1,17 @@
-'use strict';
+"use strict";
 
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const compression = require('compression');
-const cookieParser = require('cookie-parser');
-const pinoHttp = require('pino-http');
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const compression = require("compression");
+const cookieParser = require("cookie-parser");
+const pinoHttp = require("pino-http");
 
-const env = require('./config/env');
-const logger = require('./config/logger');
-const apiRouter = require('./routes');
-const { generalLimiter } = require('./middleware/rateLimiter');
-const { errorHandler, notFound } = require('./middleware/errorHandler');
+const env = require("./config/env");
+const logger = require("./config/logger");
+const apiRouter = require("./routes");
+const { generalLimiter } = require("./middleware/rateLimiter");
+const { errorHandler, notFound } = require("./middleware/errorHandler");
 
 /**
  * Build and configure the Express application.
@@ -21,7 +21,7 @@ function createApp() {
   const app = express();
 
   // Trust the proxy (Render / Railway / nginx) so req.ip is correct.
-  app.set('trust proxy', 1);
+  app.set("trust proxy", 1);
 
   // --- Security & platform middleware ---
   app.use(helmet());
@@ -29,7 +29,7 @@ function createApp() {
     cors({
       origin: env.CLIENT_URL,
       credentials: true,
-    })
+    }),
   );
   app.use(compression());
 
@@ -38,11 +38,11 @@ function createApp() {
   // capture it here while still JSON-parsing for normal use.
   app.use(
     express.json({
-      limit: '1mb',
+      limit: "1mb",
       verify: (req, res, buf) => {
         req.rawBody = buf;
       },
-    })
+    }),
   );
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -54,10 +54,14 @@ function createApp() {
   app.use(generalLimiter);
 
   // --- Root ---
-  app.get('/', (req, res) => {
+  app.get("/", (req, res) => {
     res.json({
       success: true,
-      data: { name: 'MediCare Connect API', version: '1.0.0', docs: `${env.API_PREFIX}/health` },
+      data: {
+        name: "MediCare Connect API",
+        version: "1.0.0",
+        docs: `${env.API_PREFIX}/health`,
+      },
     });
   });
 

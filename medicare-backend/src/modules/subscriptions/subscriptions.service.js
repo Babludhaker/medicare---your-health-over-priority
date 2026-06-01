@@ -1,12 +1,12 @@
-'use strict';
+"use strict";
 
-const { prisma } = require('../../config/prisma');
-const ApiError = require('../../utils/ApiError');
-const logger = require('../../config/logger');
-const { SUBSCRIPTION_STATUS, AUDIT_ACTIONS } = require('../../utils/constants');
-const { audit } = require('../../utils/audit');
-const { addDays } = require('../../utils/datetime');
-const razorpay = require('../../services/payment.service');
+const { prisma } = require("../../config/prisma");
+const ApiError = require("../../utils/ApiError");
+const logger = require("../../config/logger");
+const { SUBSCRIPTION_STATUS, AUDIT_ACTIONS } = require("../../utils/constants");
+const { audit } = require("../../utils/audit");
+const { addDays } = require("../../utils/datetime");
+const razorpay = require("../../services/payment.service");
 
 /**
  * SaaS subscription billing — the platform charges clinics for using
@@ -17,7 +17,7 @@ const razorpay = require('../../services/payment.service');
  * List the public catalogue of plans.
  */
 async function listPlans() {
-  return prisma.subscriptionPlan.findMany({ orderBy: { priceMonthly: 'asc' } });
+  return prisma.subscriptionPlan.findMany({ orderBy: { priceMonthly: "asc" } });
 }
 
 /**
@@ -49,14 +49,40 @@ async function upsertPlan(input) {
  * and an ACTIVE ClinicSubscription (TRIALING for the first period).
  */
 async function subscribe(clinicId, actor, planTier) {
-  const plan = await prisma.subscriptionPlan.findUnique({ where: { tier: planTier } });
-  if (!plan) throw ApiError.badRequest('Unknown plan tier', 'BAD_PLAN');
-
-  // Razorpay subscription (mock-safe).
-  const rzpSub = await razorpay.createSubscription({
-    planId: `plan_${plan.tier.toLowerCase()}`,
-    notes: { clinicId, tier: plan.tier },
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { tier: planTier },
   });
+  if (!plan) throw ApiError.badRequest("Unknown plan tier", "BAD_PLAN");
+
+  // ✅ Razorpay plan IDs env se lo — fallback mock mein
+  const PLAN_ID_MAP = {
+    BASIC: process.env.RAZORPAY_PLAN_BASIC,
+    PRO: process.env.RAZORPAY_PLAN_PRO,
+    ENTERPRISE: process.env.RAZORPAY_PLAN_ENTERPRISE,
+  };
+
+  // ✅ Razorpay fail ho toh mock se fallback
+  let rzpSub;
+  try {
+    const rzpPlanId = PLAN_ID_MAP[plan.tier];
+    if (!rzpPlanId) {
+      throw new Error(`No Razorpay plan ID configured for tier: ${plan.tier}`);
+    }
+    rzpSub = await razorpay.createSubscription({
+      planId: rzpPlanId,
+      notes: { clinicId, tier: plan.tier },
+    });
+  } catch (err) {
+    logger.warn(
+      { err: err.message, tier: plan.tier },
+      "Razorpay subscription failed — using mock",
+    );
+    rzpSub = {
+      id: `sub_mock_${plan.tier.toLowerCase()}_${Date.now()}`,
+      status: "created",
+      mocked: true,
+    };
+  }
 
   const subscription = await prisma.clinicSubscription.upsert({
     where: { clinicId },
@@ -79,7 +105,7 @@ async function subscribe(clinicId, actor, planTier) {
     clinicId,
     userId: actor.id,
     action: AUDIT_ACTIONS.SUBSCRIPTION_CHANGED,
-    entityType: 'ClinicSubscription',
+    entityType: "ClinicSubscription",
     entityId: subscription.id,
     metadata: { tier: plan.tier },
   });
@@ -96,7 +122,7 @@ async function getClinicSubscription(clinicId) {
     include: { plan: true },
   });
   if (!subscription) {
-    throw ApiError.notFound('This clinic has no subscription');
+    throw ApiError.notFound("This clinic has no subscription");
   }
 
   // Live usage figures vs plan limits.
@@ -105,7 +131,9 @@ async function getClinicSubscription(clinicId) {
     prisma.appointment.count({
       where: {
         clinicId,
-        createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        },
       },
     }),
   ]);
@@ -133,24 +161,28 @@ async function assertWithinLimits(clinicId, kind) {
   });
   if (!sub) return; // no subscription configured -> do not block
 
-  if (kind === 'doctor') {
+  if (kind === "doctor") {
     const count = await prisma.doctorProfile.count({ where: { clinicId } });
     if (count >= sub.plan.maxDoctors) {
       throw ApiError.forbidden(
-        'Doctor limit reached for the current plan',
-        'PLAN_LIMIT_DOCTORS'
+        "Doctor limit reached for the current plan",
+        "PLAN_LIMIT_DOCTORS",
       );
     }
   }
-  if (kind === 'appointment' && sub.plan.maxAppointments !== -1) {
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  if (kind === "appointment" && sub.plan.maxAppointments !== -1) {
+    const monthStart = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1,
+    );
     const count = await prisma.appointment.count({
       where: { clinicId, createdAt: { gte: monthStart } },
     });
     if (count >= sub.plan.maxAppointments) {
       throw ApiError.forbidden(
-        'Monthly appointment limit reached for the current plan',
-        'PLAN_LIMIT_APPTS'
+        "Monthly appointment limit reached for the current plan",
+        "PLAN_LIMIT_APPTS",
       );
     }
   }
@@ -163,12 +195,12 @@ async function assertWithinLimits(clinicId, kind) {
 async function handleSubscriptionWebhook(rawBody, signature, parsedBody) {
   const valid = razorpay.verifyWebhookSignature(rawBody, signature);
   if (!valid) {
-    throw ApiError.unauthorized('Invalid webhook signature', 'BAD_WEBHOOK_SIG');
+    throw ApiError.unauthorized("Invalid webhook signature", "BAD_WEBHOOK_SIG");
   }
 
   const event = parsedBody?.event;
   const entity = parsedBody?.payload?.subscription?.entity;
-  logger.info({ event }, 'Razorpay subscription webhook received');
+  logger.info({ event }, "Razorpay subscription webhook received");
 
   if (!entity?.id) return { received: true };
 
@@ -178,12 +210,12 @@ async function handleSubscriptionWebhook(rawBody, signature, parsedBody) {
   if (!sub) return { received: true };
 
   const statusMap = {
-    'subscription.activated': SUBSCRIPTION_STATUS.ACTIVE,
-    'subscription.charged': SUBSCRIPTION_STATUS.ACTIVE,
-    'subscription.pending': SUBSCRIPTION_STATUS.PAST_DUE,
-    'subscription.halted': SUBSCRIPTION_STATUS.PAST_DUE,
-    'subscription.cancelled': SUBSCRIPTION_STATUS.CANCELLED,
-    'subscription.completed': SUBSCRIPTION_STATUS.CANCELLED,
+    "subscription.activated": SUBSCRIPTION_STATUS.ACTIVE,
+    "subscription.charged": SUBSCRIPTION_STATUS.ACTIVE,
+    "subscription.pending": SUBSCRIPTION_STATUS.PAST_DUE,
+    "subscription.halted": SUBSCRIPTION_STATUS.PAST_DUE,
+    "subscription.cancelled": SUBSCRIPTION_STATUS.CANCELLED,
+    "subscription.completed": SUBSCRIPTION_STATUS.CANCELLED,
   };
 
   const newStatus = statusMap[event];
@@ -193,7 +225,9 @@ async function handleSubscriptionWebhook(rawBody, signature, parsedBody) {
       data: {
         status: newStatus,
         currentPeriodEnd:
-          event === 'subscription.charged' ? addDays(new Date(), 30) : sub.currentPeriodEnd,
+          event === "subscription.charged"
+            ? addDays(new Date(), 30)
+            : sub.currentPeriodEnd,
       },
     });
   }
